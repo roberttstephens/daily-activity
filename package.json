@@ -1,0 +1,27 @@
+{
+  "name": "daily-activity",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --experimental-strip-types jira-activity.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "today": "node --experimental-strip-types jira-activity.ts",
+    "yesterday": "node --experimental-strip-types jira-activity.ts $(date -d yesterday +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "volta": {
+    "node": "25.1.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.2",
+    "@types/node": "^24.9.2",
+    "typescript": "^5.9.3"
+  }
+}
