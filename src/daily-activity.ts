@@ -9,11 +9,12 @@
 
 import { fetchGitHubActivity } from "./github-activity.ts";
 import { fetchJiraActivity } from "./jira-activity.ts";
+import { isValidDateFormat } from "./utils.ts";
 
 async function main() {
   const dateStr = process.argv[2] || new Date().toISOString().substring(0, 10);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+  if (!isValidDateFormat(dateStr)) {
     console.error("Invalid date format. Use YYYY-MM-DD");
     process.exit(1);
   }

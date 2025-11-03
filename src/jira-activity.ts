@@ -4,6 +4,7 @@
  */
 
 import "dotenv/config";
+import { isValidDateFormat } from "./utils.ts";
 
 interface JiraIssue {
   key: string;
@@ -19,24 +20,17 @@ interface JiraSearchResponse {
   total: number;
 }
 
-export async function fetchJiraActivity(dateStr: string): Promise<void> {
-  const domain = process.env.ATLASSIAN_1_DOMAIN;
-  const email = process.env.ATLASSIAN_1_ACCOUNT_EMAIL;
-  const apiToken = process.env.ATLASSIAN_1_API_TOKEN;
+interface AtlassianInstance {
+  domain: string;
+  email: string;
+  apiToken: string;
+}
 
-  if (!domain || !email || !apiToken) {
-    console.error(
-      "Error: ATLASSIAN_1_DOMAIN, ATLASSIAN_1_ACCOUNT_EMAIL and ATLASSIAN_1_API_TOKEN must be set in .env",
-    );
-    process.exit(1);
-  }
-
-  const jiraUrl = `https://${domain}.atlassian.net`;
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    console.error("Invalid date format. Use YYYY-MM-DD");
-    process.exit(1);
-  }
+async function fetchJiraFromInstance(
+  instance: AtlassianInstance,
+  dateStr: string,
+): Promise<JiraIssue[]> {
+  const jiraUrl = `https://${instance.domain}.atlassian.net`;
 
   const nextDate = new Date(dateStr);
   nextDate.setDate(nextDate.getDate() + 1);
@@ -47,7 +41,7 @@ export async function fetchJiraActivity(dateStr: string): Promise<void> {
   // 2. Tickets you created on that day
   // 3. Tickets you're watching that were updated (indicates active monitoring/engagement)
   const jql = `(assignee = currentUser() AND (status changed DURING ("${dateStr}") OR commenter = currentUser())) OR (reporter = currentUser() AND created >= "${dateStr}" AND created < "${nextDateStr}") OR (watcher = currentUser() AND updated >= "${dateStr}" AND updated < "${nextDateStr}")`;
-  const auth = btoa(`${email}:${apiToken}`);
+  const auth = btoa(`${instance.email}:${instance.apiToken}`);
   const url = `${jiraUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,project&maxResults=100`;
 
   const response = await fetch(url, {
@@ -59,18 +53,70 @@ export async function fetchJiraActivity(dateStr: string): Promise<void> {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error(`Error: HTTP ${response.status} ${response.statusText}`);
+    console.error(
+      `Error fetching from ${instance.domain}: HTTP ${response.status} ${response.statusText}`,
+    );
     console.error(errorBody);
-    process.exit(1);
+    return [];
   }
 
   const data = (await response.json()) as JiraSearchResponse;
+  return data.issues;
+}
 
-  if (data.issues.length === 0) {
+function loadAtlassianInstances(): AtlassianInstance[] {
+  const instances: AtlassianInstance[] = [];
+
+  // Look for ATLASSIAN_N_* environment variables
+  let index = 1;
+  while (true) {
+    const domain = process.env[`ATLASSIAN_${index}_DOMAIN`];
+    const email = process.env[`ATLASSIAN_${index}_ACCOUNT_EMAIL`];
+    const apiToken = process.env[`ATLASSIAN_${index}_API_TOKEN`];
+
+    // If all three are present, add the instance
+    if (domain && email && apiToken) {
+      instances.push({ domain, email, apiToken });
+      index++;
+    } else if (domain || email || apiToken) {
+      // If only some are present, warn about incomplete configuration
+      console.warn(
+        `Warning: Incomplete configuration for ATLASSIAN_${index}_*. Skipping.`,
+      );
+      index++;
+    } else {
+      // No more instances found
+      break;
+    }
+  }
+
+  return instances;
+}
+
+export async function fetchJiraActivity(dateStr: string): Promise<void> {
+  if (!isValidDateFormat(dateStr)) {
+    console.error("Invalid date format. Use YYYY-MM-DD");
     return;
   }
 
-  for (const issue of data.issues) {
+  const instances = loadAtlassianInstances();
+
+  if (instances.length === 0) {
+    console.error(
+      "Error: At least one Atlassian instance must be configured with ATLASSIAN_N_DOMAIN, ATLASSIAN_N_ACCOUNT_EMAIL and ATLASSIAN_N_API_TOKEN in .env",
+    );
+    return;
+  }
+
+  // Fetch from all instances in parallel
+  const allIssuesArrays = await Promise.all(
+    instances.map((instance) => fetchJiraFromInstance(instance, dateStr)),
+  );
+
+  // Flatten and combine all issues
+  const allIssues = allIssuesArrays.flat();
+
+  for (const issue of allIssues) {
     console.log(`${issue.key}: ${issue.fields.summary} | Jira`);
   }
 }
