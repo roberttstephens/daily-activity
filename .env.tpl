@@ -1,0 +1,4 @@
+# Atlassian/Jira Configuration
+ATLASSIAN_1_DOMAIN=your-company
+ATLASSIAN_1_ACCOUNT_EMAIL=your.email@example.com
+ATLASSIAN_1_API_TOKEN=your_api_token_here
