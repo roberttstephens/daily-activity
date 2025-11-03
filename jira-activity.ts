@@ -20,16 +20,18 @@ interface JiraSearchResponse {
 }
 
 export async function fetchJiraActivity(dateStr: string): Promise<void> {
-  const jiraUrl = "https://massgov.atlassian.net";
+  const domain = process.env.ATLASSIAN_1_DOMAIN;
   const email = process.env.ATLASSIAN_1_ACCOUNT_EMAIL;
   const apiToken = process.env.ATLASSIAN_1_API_TOKEN;
 
-  if (!email || !apiToken) {
+  if (!domain || !email || !apiToken) {
     console.error(
-      "Error: ATLASSIAN_1_ACCOUNT_EMAIL and ATLASSIAN_1_API_TOKEN must be set in .env",
+      "Error: ATLASSIAN_1_DOMAIN, ATLASSIAN_1_ACCOUNT_EMAIL and ATLASSIAN_1_API_TOKEN must be set in .env",
     );
     process.exit(1);
   }
+
+  const jiraUrl = `https://${domain}.atlassian.net`;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     console.error("Invalid date format. Use YYYY-MM-DD");
