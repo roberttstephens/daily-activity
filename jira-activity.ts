@@ -22,7 +22,7 @@ interface JiraSearchResponse {
   total: number;
 }
 
-async function main() {
+export async function fetchJiraActivity(dateStr: string): Promise<void> {
   const jiraUrl = "https://massgov.atlassian.net";
   const email = process.env.ATLASSIAN_1_ACCOUNT_EMAIL;
   const apiToken = process.env.ATLASSIAN_1_API_TOKEN;
@@ -33,8 +33,6 @@ async function main() {
     );
     process.exit(1);
   }
-
-  const dateStr = process.argv[2] || new Date().toISOString().substring(0, 10);
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     console.error("Invalid date format. Use YYYY-MM-DD");
@@ -70,18 +68,10 @@ async function main() {
   const data = (await response.json()) as JiraSearchResponse;
 
   if (data.issues.length === 0) {
-    console.log("No issues found");
     return;
   }
 
   for (const issue of data.issues) {
-    console.log(`${issue.key}: ${issue.fields.summary}`);
-    console.log(`  Status: ${issue.fields.status.name}`);
-    console.log();
+    console.log(`${issue.key}: ${issue.fields.summary} | Jira`);
   }
 }
-
-await main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
