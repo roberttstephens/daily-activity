@@ -4,6 +4,7 @@
  */
 
 import "dotenv/config";
+import type { ActivityItem, ActivityProvider } from "./types.ts";
 import { isValidDateFormat } from "./utils.ts";
 
 interface JiraIssue {
@@ -93,30 +94,38 @@ function loadAtlassianInstances(): AtlassianInstance[] {
   return instances;
 }
 
-export async function fetchJiraActivity(dateStr: string): Promise<void> {
-  if (!isValidDateFormat(dateStr)) {
-    console.error("Invalid date format. Use YYYY-MM-DD");
-    return;
-  }
+export const jiraActivityProvider: ActivityProvider = {
+  name: "Jira",
 
-  const instances = loadAtlassianInstances();
+  async fetchActivity(dateStr: string): Promise<ActivityItem[]> {
+    if (!isValidDateFormat(dateStr)) {
+      throw new Error("Invalid date format. Use YYYY-MM-DD");
+    }
 
-  if (instances.length === 0) {
-    console.error(
-      "Error: At least one Atlassian instance must be configured with ATLASSIAN_N_DOMAIN, ATLASSIAN_N_ACCOUNT_EMAIL and ATLASSIAN_N_API_TOKEN in .env",
+    const instances = loadAtlassianInstances();
+
+    if (instances.length === 0) {
+      throw new Error(
+        "At least one Atlassian instance must be configured with ATLASSIAN_N_DOMAIN, ATLASSIAN_N_ACCOUNT_EMAIL and ATLASSIAN_N_API_TOKEN in .env",
+      );
+    }
+
+    // Fetch from all instances in parallel
+    const allIssuesArrays = await Promise.all(
+      instances.map((instance) => fetchJiraFromInstance(instance, dateStr)),
     );
-    return;
-  }
 
-  // Fetch from all instances in parallel
-  const allIssuesArrays = await Promise.all(
-    instances.map((instance) => fetchJiraFromInstance(instance, dateStr)),
-  );
+    // Flatten and combine all issues
+    const allIssues = allIssuesArrays.flat();
 
-  // Flatten and combine all issues
-  const allIssues = allIssuesArrays.flat();
-
-  for (const issue of allIssues) {
-    console.log(`${issue.key}: ${issue.fields.summary} | Jira`);
-  }
-}
+    return allIssues.map((issue) => ({
+      title: `${issue.key}: ${issue.fields.summary}`,
+      source: "Jira",
+      metadata: {
+        key: issue.key,
+        status: issue.fields.status.name,
+        project: issue.fields.project.name,
+      },
+    }));
+  },
+};

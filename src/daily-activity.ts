@@ -7,31 +7,50 @@
  * node --experimental-strip-types src/daily-activity.ts [YYYY-MM-DD]
  */
 
-import { fetchGitHubActivity } from "./github-activity.ts";
-import { fetchJiraActivity } from "./jira-activity.ts";
+import { githubActivityProvider } from "./github-activity.ts";
+import { jiraActivityProvider } from "./jira-activity.ts";
+import type { ActivityItem, ActivityProvider } from "./types.ts";
 import { isValidDateFormat } from "./utils.ts";
 
 async function main() {
   const dateStr = process.argv[2] || new Date().toISOString().substring(0, 10);
 
   if (!isValidDateFormat(dateStr)) {
-    console.error("Invalid date format. Use YYYY-MM-DD");
-    process.exit(1);
+    throw new Error("Invalid date format. Use YYYY-MM-DD");
   }
 
   console.log(`Activity for ${dateStr}:\n`);
 
-  try {
-    await fetchJiraActivity(dateStr);
-  } catch (error) {
-    console.error("Error fetching Jira activity:", error);
+  const allActivities: ActivityItem[] = [];
+
+  // Configure providers
+  const providers: ActivityProvider[] = [
+    jiraActivityProvider,
+    githubActivityProvider,
+  ];
+
+  // Fetch from all providers
+  for (const provider of providers) {
+    try {
+      const activities = await provider.fetchActivity(dateStr);
+      allActivities.push(...activities);
+    } catch (error) {
+      console.error(
+        `Error fetching ${provider.name} activity:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 
-  try {
-    await fetchGitHubActivity(dateStr);
-  } catch (error) {
-    console.error("Error fetching GitHub activity:", error);
+  // Sort activities alphabetically by title
+  allActivities.sort((a, b) => a.title.localeCompare(b.title));
+
+  // Output results
+  for (const activity of allActivities) {
+    console.log(`${activity.title} | ${activity.source}`);
   }
+
+  console.log(`\nTotal: ${allActivities.length} activities`);
 }
 
 await main().catch((error) => {
