@@ -1,13 +1,17 @@
 {
   "name": "daily-activity",
   "version": "1.0.0",
-  "description": "",
+  "description": "A tool to help document what you did on a given day by pulling activity from GitHub and Jira",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/roberttstephens/daily-activity.git"
+  },
   "scripts": {
-    "start": "node --experimental-strip-types daily-activity.ts",
+    "start": "node --experimental-strip-types src/daily-activity.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "today": "node --experimental-strip-types daily-activity.ts",
-    "yesterday": "node --experimental-strip-types daily-activity.ts $(date -d yesterday +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)",
+    "today": "node --experimental-strip-types src/daily-activity.ts",
+    "yesterday": "node --experimental-strip-types src/daily-activity.ts $(date -d yesterday +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:ci": "biome ci ."
