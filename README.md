@@ -30,3 +30,8 @@ A tool to help document what you did on a given day by pulling activity from Git
    - Tickets you're watching that were updated (indicates active monitoring/engagement)
 
 It expects that all commits and PR titles will begin with a format of `jiraProjectId-ticketId: description`. For example: `AB-123: Did some thing`.
+
+
+## Known issues
+
+This script doesn't handle local timezone/UTC correctly yet.
