@@ -1,4 +1,5 @@
 #!/usr/bin/env node --experimental-strip-types
+
 /**
  * Script to fetch daily activity from both Jira and GitHub.
  *
@@ -6,8 +7,8 @@
  * node --experimental-strip-types daily-activity.ts [YYYY-MM-DD]
  */
 
-import { fetchJiraActivity } from "./jira-activity.ts";
 import { fetchGitHubActivity } from "./github-activity.ts";
+import { fetchJiraActivity } from "./jira-activity.ts";
 
 async function main() {
   const dateStr = process.argv[2] || new Date().toISOString().substring(0, 10);

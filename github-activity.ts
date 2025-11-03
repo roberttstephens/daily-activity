@@ -1,12 +1,9 @@
 #!/usr/bin/env node --experimental-strip-types
 /**
  * Script to fetch GitHub activity (commits and PR reviews) using GitHub CLI.
- *
- * Usage:
- * node --experimental-strip-types github-activity.ts [YYYY-MM-DD]
  */
 
-import { execSync } from "child_process";
+import { execSync } from "node:child_process";
 
 interface GitHubCommit {
   commit: {
@@ -16,11 +13,6 @@ interface GitHubCommit {
 
 interface GitHubPR {
   title: string;
-}
-
-function extractTicketId(text: string): string | null {
-  const match = text.match(/^([A-Z]+-[0-9]+)/);
-  return match ? match[1] : null;
 }
 
 export async function fetchGitHubActivity(dateStr: string): Promise<void> {
@@ -40,13 +32,10 @@ export async function fetchGitHubActivity(dateStr: string): Promise<void> {
 
     for (const commit of commits) {
       const message = commit.commit.message.split("\n")[0]; // First line only
-      const ticketId = extractTicketId(message);
 
-      if (ticketId) {
-        console.log(`${ticketId}: ${message} | GitHub`);
-      }
+      console.log(`${message} | GitHub`);
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently continue if no commits found or gh command fails
   }
 
@@ -60,13 +49,9 @@ export async function fetchGitHubActivity(dateStr: string): Promise<void> {
     const prs = JSON.parse(prsOutput) as GitHubPR[];
 
     for (const pr of prs) {
-      const ticketId = extractTicketId(pr.title);
-
-      if (ticketId) {
-        console.log(`${ticketId}: ${pr.title} | GitHub`);
-      }
+      console.log(`${pr.title} | GitHub`);
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently continue if no PRs found or gh command fails
   }
 }

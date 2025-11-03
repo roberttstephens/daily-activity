@@ -1,9 +1,6 @@
 #!/usr/bin/env node --experimental-strip-types
 /**
  * Script to fetch Jira tickets using a JQL query.
- *
- * Usage:
- * node --experimental-strip-types jira-activity.ts [YYYY-MM-DD]
  */
 
 import "dotenv/config";

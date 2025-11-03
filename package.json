@@ -7,7 +7,10 @@
     "start": "node --experimental-strip-types daily-activity.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "today": "node --experimental-strip-types daily-activity.ts",
-    "yesterday": "node --experimental-strip-types daily-activity.ts $(date -d yesterday +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)"
+    "yesterday": "node --experimental-strip-types daily-activity.ts $(date -d yesterday +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:ci": "biome ci ."
   },
   "keywords": [],
   "author": "",
