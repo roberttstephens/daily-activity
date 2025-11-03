@@ -1,8 +1,3 @@
-#!/usr/bin/env node --experimental-strip-types
-/**
- * Script to fetch GitHub activity (commits and PR reviews) using GitHub CLI.
- */
-
 import { execSync } from "node:child_process";
 import type { ActivityItem, ActivityProvider } from "./types.ts";
 import { isValidDateFormat } from "./utils.ts";

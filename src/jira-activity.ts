@@ -1,8 +1,3 @@
-#!/usr/bin/env node --experimental-strip-types
-/**
- * Script to fetch Jira tickets using a JQL query.
- */
-
 import "dotenv/config";
 import type { ActivityItem, ActivityProvider } from "./types.ts";
 import { isValidDateFormat } from "./utils.ts";
