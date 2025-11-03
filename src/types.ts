@@ -1,5 +1,5 @@
 /**
- * Common types and interfaces for activity tracking
+ * Common types excluding external API schemas/interfaces
  */
 
 export interface ActivityItem {
@@ -11,4 +11,11 @@ export interface ActivityItem {
 export interface ActivityProvider {
   name: string;
   fetchActivity(dateStr: string): Promise<ActivityItem[]>;
+}
+
+// Atlassian configuration
+export interface AtlassianInstance {
+  domain: string;
+  email: string;
+  apiToken: string;
 }

@@ -1,16 +1,11 @@
 import { execSync } from "node:child_process";
+import { ZodError } from "zod";
+import {
+  GitHubCommitsResponseSchema,
+  GitHubPRsResponseSchema,
+} from "./schemas.ts";
 import type { ActivityItem, ActivityProvider } from "./types.ts";
 import { isValidDateFormat } from "./utils.ts";
-
-interface GitHubCommit {
-  commit: {
-    message: string;
-  };
-}
-
-interface GitHubPR {
-  title: string;
-}
 
 export const githubActivityProvider: ActivityProvider = {
   name: "GitHub",
@@ -29,21 +24,38 @@ export const githubActivityProvider: ActivityProvider = {
         { encoding: "utf-8" },
       );
 
-      const commits = JSON.parse(commitsOutput) as GitHubCommit[];
+      const parsedOutput = JSON.parse(commitsOutput);
+      const result = GitHubCommitsResponseSchema.safeParse(parsedOutput);
 
-      for (const commit of commits) {
-        const message = commit.commit.message.split("\n")[0]; // First line only
-        activities.push({
-          title: message || "",
-          source: "GitHub",
-          metadata: { type: "commit" },
-        });
+      if (!result.success) {
+        console.error(
+          `GitHub commits validation error for ${dateStr}:`,
+          JSON.stringify(result.error.issues, null, 2),
+        );
+        console.warn("Skipping GitHub commits due to validation error");
+      } else {
+        const commits = result.data;
+        for (const commit of commits) {
+          const message = commit.commit.message.split("\n")[0]; // First line only
+          activities.push({
+            title: message || "",
+            source: "GitHub",
+            metadata: { type: "commit" },
+          });
+        }
       }
     } catch (error) {
-      console.warn(
-        `Failed to fetch GitHub commits for ${dateStr}:`,
-        error instanceof Error ? error.message : String(error),
-      );
+      if (error instanceof ZodError) {
+        console.error(
+          `GitHub commits validation error for ${dateStr}:`,
+          JSON.stringify(error.issues, null, 2),
+        );
+      } else {
+        console.warn(
+          `Failed to fetch GitHub commits for ${dateStr}:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     }
 
     // Fetch PRs reviewed
@@ -53,20 +65,37 @@ export const githubActivityProvider: ActivityProvider = {
         { encoding: "utf-8" },
       );
 
-      const prs = JSON.parse(prsOutput) as GitHubPR[];
+      const parsedOutput = JSON.parse(prsOutput);
+      const result = GitHubPRsResponseSchema.safeParse(parsedOutput);
 
-      for (const pr of prs) {
-        activities.push({
-          title: pr.title,
-          source: "GitHub",
-          metadata: { type: "pr-review" },
-        });
+      if (!result.success) {
+        console.error(
+          `GitHub PRs validation error for ${dateStr}:`,
+          JSON.stringify(result.error.issues, null, 2),
+        );
+        console.warn("Skipping GitHub PRs due to validation error");
+      } else {
+        const prs = result.data;
+        for (const pr of prs) {
+          activities.push({
+            title: pr.title,
+            source: "GitHub",
+            metadata: { type: "pr-review" },
+          });
+        }
       }
     } catch (error) {
-      console.warn(
-        `Failed to fetch GitHub PRs for ${dateStr}:`,
-        error instanceof Error ? error.message : String(error),
-      );
+      if (error instanceof ZodError) {
+        console.error(
+          `GitHub PRs validation error for ${dateStr}:`,
+          JSON.stringify(error.issues, null, 2),
+        );
+      } else {
+        console.warn(
+          `Failed to fetch GitHub PRs for ${dateStr}:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     }
 
     return activities;

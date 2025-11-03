@@ -1,26 +1,12 @@
 import "dotenv/config";
-import type { ActivityItem, ActivityProvider } from "./types.ts";
+import { ZodError } from "zod";
+import { type JiraIssue, JiraSearchResponseSchema } from "./schemas.ts";
+import type {
+  ActivityItem,
+  ActivityProvider,
+  AtlassianInstance,
+} from "./types.ts";
 import { isValidDateFormat } from "./utils.ts";
-
-interface JiraIssue {
-  key: string;
-  fields: {
-    summary: string;
-    status: { name: string };
-    project: { name: string; key: string };
-  };
-}
-
-interface JiraSearchResponse {
-  issues: JiraIssue[];
-  total: number;
-}
-
-interface AtlassianInstance {
-  domain: string;
-  email: string;
-  apiToken: string;
-}
 
 async function fetchJiraFromInstance(
   instance: AtlassianInstance,
@@ -40,24 +26,52 @@ async function fetchJiraFromInstance(
   const auth = btoa(`${instance.email}:${instance.apiToken}`);
   const url = `${jiraUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,project&maxResults=100`;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Basic ${auth}`,
-      Accept: "application/json",
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error(
-      `Error fetching from ${instance.domain}: HTTP ${response.status} ${response.statusText}`,
-    );
-    console.error(errorBody);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(
+        `Error fetching from ${instance.domain}: HTTP ${response.status} ${response.statusText}`,
+      );
+      console.error(errorBody);
+      return [];
+    }
+
+    const jsonData = await response.json();
+    const result = JiraSearchResponseSchema.safeParse(jsonData);
+
+    if (!result.success) {
+      console.error(
+        `Jira response validation error from ${instance.domain}:`,
+        JSON.stringify(result.error.issues, null, 2),
+      );
+      console.warn(
+        `Skipping Jira issues from ${instance.domain} due to validation error`,
+      );
+      return [];
+    }
+
+    return result.data.issues;
+  } catch (error) {
+    if (error instanceof ZodError) {
+      console.error(
+        `Jira validation error from ${instance.domain}:`,
+        JSON.stringify(error.issues, null, 2),
+      );
+    } else {
+      console.error(
+        `Error fetching from ${instance.domain}:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
     return [];
   }
-
-  const data = (await response.json()) as JiraSearchResponse;
-  return data.issues;
 }
 
 function loadAtlassianInstances(): AtlassianInstance[] {
